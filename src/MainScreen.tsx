@@ -1,4 +1,8 @@
-const Data = () => {
+interface MainScreenProps {
+  onNavigate: (page: 'login' | 'register' | 'main' | 'difficulty') => void;
+}
+
+const Data = ({ onNavigate }: MainScreenProps) => {
   return (
     <div className="bg-background text-on-background font-body selection:bg-primary-container selection:text-on-primary-container min-h-screen pb-36">
       <style>
@@ -126,7 +130,10 @@ const Data = () => {
 
       {/* BottomNavBar */}
       <div className="fixed bottom-0 left-0 w-full z-50 p-6 bg-gradient-to-t from-background via-background/95 to-transparent">
-        <button className="w-full bg-[#7C4DFF] hover:bg-[#6A3EE3] text-white font-headline font-bold py-5 px-8 rounded-full shadow-[0_10px_30px_rgba(124,77,255,0.3)] transition-all active:scale-[0.98] duration-200 uppercase tracking-widest text-sm flex items-center justify-center">
+        <button 
+          onClick={() => onNavigate('difficulty')}
+          className="w-full bg-[#7C4DFF] hover:bg-[#6A3EE3] text-white font-headline font-bold py-5 px-8 rounded-full shadow-[0_10px_30px_rgba(124,77,255,0.3)] transition-all active:scale-[0.98] duration-200 uppercase tracking-widest text-sm flex items-center justify-center cursor-pointer"
+        >
           CHOOSE DIFFICULTY
         </button>
       </div>
