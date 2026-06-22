@@ -1,8 +1,60 @@
+import { useState, useEffect } from 'react';
+
 interface MainScreenProps {
   onNavigate: (page: 'login' | 'register' | 'main' | 'difficulty') => void;
 }
 
 const Data = ({ onNavigate }: MainScreenProps) => {
+  const [stats, setStats] = useState({
+    correctGuesses: 0,
+    incorrectGuesses: 0,
+    totalSessions: 0,
+    dailyStreak: 0,
+  });
+
+  useEffect(() => {
+    const correct = parseInt(localStorage.getItem('et_guessed_true') || '0', 10);
+    const incorrect = parseInt(localStorage.getItem('et_guessed_false') || '0', 10);
+    const sessions = parseInt(localStorage.getItem('et_total_sessions') || '0', 10);
+    const streak = parseInt(localStorage.getItem('et_daily_streak') || '0', 10);
+
+    setStats({
+      correctGuesses: correct,
+      incorrectGuesses: incorrect,
+      totalSessions: sessions,
+      dailyStreak: streak,
+    });
+  }, []);
+
+  const totalGuesses = stats.correctGuesses + stats.incorrectGuesses;
+  const accuracy = totalGuesses > 0 ? Math.round((stats.correctGuesses / totalGuesses) * 100) : 0;
+
+  // SVG Gauge calculations (radius = 88, circumference = 2 * PI * 88 = 552.92)
+  const strokeDasharray = 552.92;
+  const strokeDashoffset = strokeDasharray - (accuracy / 100) * strokeDasharray;
+
+  // Accuracy description
+  let accuracyDesc = "Play your first session to see your accuracy and insights.";
+  if (totalGuesses > 0) {
+    if (accuracy >= 85) {
+      accuracyDesc = "Master level accuracy! Your pitch detection is exceptionally sharp.";
+    } else if (accuracy >= 70) {
+      accuracyDesc = "Great job! You have a solid grasp on pitch relationships.";
+    } else if (accuracy >= 50) {
+      accuracyDesc = "Good progress. Keep practicing to build more consistency.";
+    } else {
+      accuracyDesc = "A good start. Take your time to listen and try again!";
+    }
+  }
+
+  // Daily Streak Milestones
+  const nextMilestone = [3, 7, 14, 30, 60, 90, 365].find(m => m > stats.dailyStreak) || (stats.dailyStreak + 1);
+  const streakProgress = Math.min(Math.round((stats.dailyStreak / nextMilestone) * 100), 100);
+
+  // Skill distribution percentages for the bars
+  const correctPct = totalGuesses > 0 ? (stats.correctGuesses / totalGuesses) * 100 : 0;
+  const incorrectPct = totalGuesses > 0 ? (stats.incorrectGuesses / totalGuesses) * 100 : 0;
+
   return (
     <div className="bg-background text-on-background font-body selection:bg-primary-container selection:text-on-primary-container min-h-screen pb-36">
       <style>
@@ -52,15 +104,26 @@ const Data = ({ onNavigate }: MainScreenProps) => {
               <div>
                 <span className="font-label text-on-surface-variant font-black tracking-widest uppercase text-xs">Overall Accuracy</span>
                 <div className="flex items-baseline gap-2 mt-2">
-                  <span className="font-headline text-8xl font-bold text-on-background">0</span>
+                  <span className="font-headline text-8xl font-bold text-on-background">{accuracy}</span>
                   <span className="font-headline text-4xl text-primary font-light">%</span>
                 </div>
-                <p className="text-on-surface-variant mt-4 max-w-xs leading-relaxed">Play your first session to see your accuracy and insights.</p>
+                <p className="text-on-surface-variant mt-4 max-w-xs leading-relaxed">{accuracyDesc}</p>
               </div>
               <div className="w-48 h-48 relative flex items-center justify-center">
                 <svg className="w-full h-full transform -rotate-90">
                   <circle className="text-surface-container-highest" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" strokeWidth="8"></circle>
-                  <circle className="text-primary drop-shadow-[0_0_8px_rgba(206,150,255,0.6)]" cx="96" cy="96" fill="transparent" r="88" stroke="currentColor" strokeDasharray="552.92" strokeDashoffset="552.92" strokeLinecap="round" strokeWidth="12"></circle>
+                  <circle 
+                    className="text-primary transition-all duration-1000 ease-out drop-shadow-[0_0_8px_rgba(206,150,255,0.6)]" 
+                    cx="96" 
+                    cy="96" 
+                    fill="transparent" 
+                    r="88" 
+                    stroke="currentColor" 
+                    strokeDasharray={strokeDasharray} 
+                    strokeDashoffset={strokeDashoffset} 
+                    strokeLinecap="round" 
+                    strokeWidth="12"
+                  ></circle>
                 </svg>
                 <span className="absolute material-symbols-outlined text-5xl text-primary" data-icon="insights">insights</span>
               </div>
@@ -72,17 +135,20 @@ const Data = ({ onNavigate }: MainScreenProps) => {
             <div>
               <span className="font-label text-tertiary font-black tracking-widest uppercase text-xs">Daily Streak</span>
               <div className="mt-2 flex items-center gap-3">
-                <span className="font-headline text-7xl font-bold text-on-background">0</span>
+                <span className="font-headline text-7xl font-bold text-on-background">{stats.dailyStreak}</span>
                 <span className="material-symbols-outlined text-tertiary text-4xl" data-icon="local_fire_department" data-weight="fill" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
               </div>
             </div>
             <div className="mt-8">
               <div className="flex justify-between mb-2 px-1">
-                <span className="text-[10px] font-black uppercase text-on-surface-variant">Next Milestone: 3 Days</span>
-                <span className="text-[10px] font-black uppercase text-tertiary">0%</span>
+                <span className="text-[10px] font-black uppercase text-on-surface-variant">Next Milestone: {nextMilestone} Days</span>
+                <span className="text-[10px] font-black uppercase text-tertiary">{streakProgress}%</span>
               </div>
               <div className="h-2 w-full bg-surface-container-highest rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-tertiary to-tertiary-dim w-0"></div>
+                <div 
+                  className="h-full bg-gradient-to-r from-tertiary to-tertiary-dim transition-all duration-1000 ease-out"
+                  style={{ width: `${streakProgress}%` }}
+                ></div>
               </div>
             </div>
           </div>
@@ -91,12 +157,16 @@ const Data = ({ onNavigate }: MainScreenProps) => {
           <div className="md:col-span-4 bg-surface-container-low p-8 rounded-3xl">
             <span className="font-label text-on-surface-variant font-black tracking-widest uppercase text-xs">Total Sessions</span>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-headline text-6xl font-bold text-on-background">0</span>
+              <span className="font-headline text-6xl font-bold text-on-background">{stats.totalSessions}</span>
               <span className="material-symbols-outlined text-secondary" data-icon="history_edu">history_edu</span>
             </div>
             <div className="mt-6 flex flex-wrap gap-2">
-              <span className="px-3 py-1 bg-surface-container-highest text-[10px] font-bold rounded-full text-on-surface-variant">0 this week</span>
-              <span className="px-3 py-1 bg-surface-container-highest text-[10px] font-bold rounded-full text-on-surface-variant">Avg 0m/day</span>
+              <span className="px-3 py-1 bg-surface-container-highest text-[10px] font-bold rounded-full text-on-surface-variant">
+                {stats.totalSessions > 0 ? 'Active learner' : 'Not started'}
+              </span>
+              <span className="px-3 py-1 bg-surface-container-highest text-[10px] font-bold rounded-full text-on-surface-variant">
+                Streak: {stats.dailyStreak}d
+              </span>
             </div>
           </div>
 
@@ -104,23 +174,33 @@ const Data = ({ onNavigate }: MainScreenProps) => {
           <div className="md:col-span-8 bg-surface-container p-8 rounded-3xl relative overflow-hidden">
             <div className="flex justify-between items-start mb-8">
               <div>
-                <span className="font-label text-on-surface-variant font-black tracking-widest uppercase text-xs">Proficiency Growth</span>
+                <span className="font-label text-on-surface-variant font-black tracking-widest uppercase text-xs">Accuracy Ratio</span>
                 <h3 className="font-headline text-2xl font-bold mt-1">Skill Distribution</h3>
               </div>
               <div className="flex gap-2">
                 <button className="p-2 bg-surface-container-highest rounded-xl text-primary"><span className="material-symbols-outlined" data-icon="equalizer">equalizer</span></button>
               </div>
             </div>
-            <div className="flex items-end justify-between h-40 gap-16 max-w-md mx-auto">
-              {/* Chords Bar */}
-              <div className="flex-1 bg-primary/20 rounded-t-xl relative group h-0">
-                <div className="absolute inset-0 bg-primary opacity-40 group-hover:opacity-100 transition-opacity rounded-t-xl"></div>
-                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-on-surface-variant">NOTE INTERVALS</span>
+            <div className="flex items-end justify-between h-40 gap-16 max-w-sm mx-auto">
+              {/* Correct Guesses Bar */}
+              <div 
+                style={{ height: `${totalGuesses > 0 ? Math.max(correctPct, 15) : 0}%` }}
+                className="flex-1 bg-primary/20 rounded-t-xl relative group transition-all duration-500 animate-pulse"
+              >
+                <div className="absolute inset-0 bg-primary opacity-60 group-hover:opacity-100 transition-opacity rounded-t-xl flex flex-col justify-end items-center pb-2">
+                  <span className="text-on-primary font-headline font-black text-lg">{stats.correctGuesses}</span>
+                </div>
+                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black tracking-widest text-[#ce96ff] uppercase whitespace-nowrap">CORRECT</span>
               </div>
-              {/* Notes Bar */}
-              <div className="flex-1 bg-primary/20 rounded-t-xl relative group h-0">
-                <div className="absolute inset-0 bg-primary opacity-40 group-hover:opacity-100 transition-opacity rounded-t-xl"></div>
-                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-on-surface-variant">NOTES</span>
+              {/* Incorrect Guesses Bar */}
+              <div 
+                style={{ height: `${totalGuesses > 0 ? Math.max(incorrectPct, 15) : 0}%` }}
+                className="flex-1 bg-error/20 rounded-t-xl relative group transition-all duration-500 animate-pulse"
+              >
+                <div className="absolute inset-0 bg-error opacity-60 group-hover:opacity-100 transition-opacity rounded-t-xl flex flex-col justify-end items-center pb-2">
+                  <span className="text-on-error font-headline font-black text-lg">{stats.incorrectGuesses}</span>
+                </div>
+                <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black tracking-widest text-error uppercase whitespace-nowrap">INCORRECT</span>
               </div>
             </div>
           </div>

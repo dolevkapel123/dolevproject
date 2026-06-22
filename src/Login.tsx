@@ -10,6 +10,7 @@ interface LoginProps {
 const Login = ({ onNavigate }: LoginProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -108,8 +109,13 @@ const Login = ({ onNavigate }: LoginProps) => {
                   </a>
                 </div>
                 <div className="flex items-center gap-3 border-b-2 border-outline-variant transition-all duration-300 group-focus-within:border-primary group-focus-within:shadow-[0_4px_12px_-4px_rgba(206,150,255,0.2)]">
-                  <input className="w-full bg-transparent border-none focus:ring-0 text-on-surface font-headline py-3 px-0 placeholder:text-outline/50" placeholder="••••••••" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                  <span className="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface">visibility_off</span>
+                  <input className="w-full bg-transparent border-none focus:ring-0 text-on-surface font-headline py-3 px-0 placeholder:text-outline/50" placeholder="••••••••" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <span 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-on-surface select-none"
+                  >
+                    {showPassword ? 'visibility' : 'visibility_off'}
+                  </span>
                 </div>
               </div>
 

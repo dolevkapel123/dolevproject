@@ -13,6 +13,8 @@ const Register = ({ onNavigate }: RegisterProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [age, setAge] = useState('');
   
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -147,11 +149,31 @@ const Register = ({ onNavigate }: RegisterProps) => {
               {errors.email && <p className="text-red-500 text-[10px] mt-1">{errors.email}</p>}
             </div>
             
-            <div className="flex gap-4">
+             <div className="flex gap-4">
               {/* Password */}
               <div className="group relative w-1/2">
                 <label className={getLabelClass('password')} htmlFor="password">Password</label>
-                <input className={getInputClass('password')} id="password" name="password" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+                <div className="relative flex items-center">
+                  <input 
+                    className={`${getInputClass('password')} pr-10`} 
+                    id="password" 
+                    name="password" 
+                    placeholder="Password" 
+                    type={showPassword ? 'text' : 'password'} 
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    autoComplete="new-password" 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-0 bottom-3 text-on-surface-variant hover:text-white transition-colors cursor-pointer select-none"
+                  >
+                    <span className="material-symbols-outlined text-xl">
+                      {showPassword ? 'visibility' : 'visibility_off'}
+                    </span>
+                  </button>
+                </div>
                 <div className={getBorderClass('password')}></div>
                 {errors.password && <p className="text-red-500 text-[10px] mt-1">{errors.password}</p>}
               </div>
@@ -159,7 +181,27 @@ const Register = ({ onNavigate }: RegisterProps) => {
               {/* Confirm Password */}
               <div className="group relative w-1/2">
                 <label className={getLabelClass('confirmPassword')} htmlFor="confirmPassword">Confirm Password</label>
-                <input className={getInputClass('confirmPassword')} id="confirmPassword" name="confirmPassword" placeholder="Confirm Password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" />
+                <div className="relative flex items-center">
+                  <input 
+                    className={`${getInputClass('confirmPassword')} pr-10`} 
+                    id="confirmPassword" 
+                    name="confirmPassword" 
+                    placeholder="Confirm Password" 
+                    type={showConfirmPassword ? 'text' : 'password'} 
+                    value={confirmPassword} 
+                    onChange={(e) => setConfirmPassword(e.target.value)} 
+                    autoComplete="new-password" 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-0 bottom-3 text-on-surface-variant hover:text-white transition-colors cursor-pointer select-none"
+                  >
+                    <span className="material-symbols-outlined text-xl">
+                      {showConfirmPassword ? 'visibility' : 'visibility_off'}
+                    </span>
+                  </button>
+                </div>
                 <div className={getBorderClass('confirmPassword')}></div>
                 {errors.confirmPassword && <p className="text-red-500 text-[10px] mt-1">{errors.confirmPassword}</p>}
               </div>

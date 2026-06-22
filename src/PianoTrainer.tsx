@@ -198,9 +198,31 @@ const PianoTrainer = ({ onNavigate, difficulty, onCompleteExpertSession }: Piano
     }, 400);
   };
 
-  // Select target note on component mount
+  // Select target note on component mount and update stats
   useEffect(() => {
     startNewRound();
+
+    // Increment total sessions
+    const sessions = parseInt(localStorage.getItem('et_total_sessions') || '0', 10);
+    localStorage.setItem('et_total_sessions', (sessions + 1).toString());
+
+    // Calculate and update daily streak
+    const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+    const lastSessionDate = localStorage.getItem('et_last_session_date');
+    const currentStreak = parseInt(localStorage.getItem('et_daily_streak') || '0', 10);
+
+    if (!lastSessionDate) {
+      localStorage.setItem('et_daily_streak', '1');
+      localStorage.setItem('et_last_session_date', today);
+    } else if (lastSessionDate !== today) {
+      const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
+      if (lastSessionDate === yesterday) {
+        localStorage.setItem('et_daily_streak', (currentStreak + 1).toString());
+      } else {
+        localStorage.setItem('et_daily_streak', '1');
+      }
+      localStorage.setItem('et_last_session_date', today);
+    }
   }, []);
 
   const handlePlayTarget = () => {
@@ -222,6 +244,10 @@ const PianoTrainer = ({ onNavigate, difficulty, onCompleteExpertSession }: Piano
     const isCorrect = key.name === targetNote.name;
 
     if (isCorrect) {
+      // Record correct guess
+      const currentTrue = parseInt(localStorage.getItem('et_guessed_true') || '0', 10);
+      localStorage.setItem('et_guessed_true', (currentTrue + 1).toString());
+
       setFeedback('Correct!');
       setFeedbackType('success');
       playChime(true);
@@ -241,6 +267,10 @@ const PianoTrainer = ({ onNavigate, difficulty, onCompleteExpertSession }: Piano
         }, 1200);
       }
     } else {
+      // Record incorrect guess
+      const currentFalse = parseInt(localStorage.getItem('et_guessed_false') || '0', 10);
+      localStorage.setItem('et_guessed_false', (currentFalse + 1).toString());
+
       setFeedback('Try again!');
       setFeedbackType('error');
       playChime(false);
