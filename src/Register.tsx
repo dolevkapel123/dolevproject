@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth } from "./firebase";
+import { auth, db } from "./firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 interface RegisterProps {
   onNavigate: (page: string) => void;
@@ -56,7 +57,20 @@ const Register = ({ onNavigate }: RegisterProps) => {
       try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         if (userCredential.user) {
-          await updateProfile(userCredential.user, { displayName: username });
+          const user = userCredential.user;
+          // Set display name in Auth profile
+          await updateProfile(user, { displayName: username });
+
+          // Save user profile details to Cloud Firestore
+          await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            firstName,
+            lastName,
+            username,
+            email,
+            age: parseInt(age, 10) || 0,
+            createdAt: new Date().toISOString()
+          });
         }
         console.log('Form submitted: success');
         onNavigate('main');

@@ -1,7 +1,7 @@
-
 import { useState } from 'react';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from './firebase';
+import { auth, googleProvider, db } from './firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 interface LoginProps {
   onNavigate: (page: string) => void;
@@ -26,7 +26,17 @@ const Login = ({ onNavigate }: LoginProps) => {
 
   const handleGoogleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      // Save/merge Google user profile to Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        email: user.email || '',
+        username: user.displayName || '',
+        lastLogin: new Date().toISOString()
+      }, { merge: true });
+
       console.log('Google login successful');
       onNavigate('main');
     } catch (err: any) {
