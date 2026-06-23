@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { auth, syncLocalStatsToFirestore } from './firebase';
 import Register from './Register';
 import Login from './Login';
 import MainScreen from './MainScreen';
@@ -25,6 +26,12 @@ function App() {
     const newVal = expertSessionsCompleted + 1;
     setExpertSessionsCompleted(newVal);
     localStorage.setItem('et_expert_sessions_completed', newVal.toString());
+    
+    // Sync to Firestore
+    const user = auth.currentUser;
+    if (user) {
+      syncLocalStatsToFirestore(user.uid);
+    }
   };
 
   return (

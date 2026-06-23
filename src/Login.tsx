@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider, db } from './firebase';
+import { auth, googleProvider, db, syncFirestoreStatsToLocal } from './firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
 interface LoginProps {
@@ -16,8 +16,9 @@ const Login = ({ onNavigate }: LoginProps) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('Logged in successfully');
+      await syncFirestoreStatsToLocal(userCredential.user.uid);
       onNavigate('main');
     } catch (err: any) {
       setError(err.message);
@@ -37,6 +38,7 @@ const Login = ({ onNavigate }: LoginProps) => {
         lastLogin: new Date().toISOString()
       }, { merge: true });
 
+      await syncFirestoreStatsToLocal(user.uid);
       console.log('Google login successful');
       onNavigate('main');
     } catch (err: any) {

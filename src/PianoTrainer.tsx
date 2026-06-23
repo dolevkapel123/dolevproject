@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { auth, syncLocalStatsToFirestore } from './firebase';
 
 interface PianoTrainerProps {
   onNavigate: (page: 'login' | 'register' | 'main' | 'difficulty' | 'piano') => void;
@@ -223,6 +224,12 @@ const PianoTrainer = ({ onNavigate, difficulty, onCompleteExpertSession }: Piano
       }
       localStorage.setItem('et_last_session_date', today);
     }
+
+    // Sync to Firestore
+    const user = auth.currentUser;
+    if (user) {
+      syncLocalStatsToFirestore(user.uid);
+    }
   }, []);
 
   const handlePlayTarget = () => {
@@ -248,6 +255,12 @@ const PianoTrainer = ({ onNavigate, difficulty, onCompleteExpertSession }: Piano
       const currentTrue = parseInt(localStorage.getItem('et_guessed_true') || '0', 10);
       localStorage.setItem('et_guessed_true', (currentTrue + 1).toString());
 
+      // Sync to Firestore
+      const user = auth.currentUser;
+      if (user) {
+        syncLocalStatsToFirestore(user.uid);
+      }
+
       setFeedback('Correct!');
       setFeedbackType('success');
       playChime(true);
@@ -270,6 +283,12 @@ const PianoTrainer = ({ onNavigate, difficulty, onCompleteExpertSession }: Piano
       // Record incorrect guess
       const currentFalse = parseInt(localStorage.getItem('et_guessed_false') || '0', 10);
       localStorage.setItem('et_guessed_false', (currentFalse + 1).toString());
+
+      // Sync to Firestore
+      const user = auth.currentUser;
+      if (user) {
+        syncLocalStatsToFirestore(user.uid);
+      }
 
       setFeedback('Try again!');
       setFeedbackType('error');

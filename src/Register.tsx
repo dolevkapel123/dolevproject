@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { auth, db } from "./firebase";
+import { auth, db, defaultStats } from "./firebase";
 import { doc, setDoc } from "firebase/firestore";
 
 interface RegisterProps {
@@ -69,8 +69,17 @@ const Register = ({ onNavigate }: RegisterProps) => {
             username,
             email,
             age: parseInt(age, 10) || 0,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            stats: defaultStats
           });
+
+          // Initialize local storage for new user
+          localStorage.setItem('et_guessed_true', '0');
+          localStorage.setItem('et_guessed_false', '0');
+          localStorage.setItem('et_total_sessions', '0');
+          localStorage.setItem('et_daily_streak', '0');
+          localStorage.setItem('et_expert_sessions_completed', '0');
+          localStorage.setItem('et_last_session_date', '');
         }
         console.log('Form submitted: success');
         onNavigate('main');

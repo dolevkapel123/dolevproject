@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { auth, syncFirestoreStatsToLocal } from './firebase';
 
 interface MainScreenProps {
   onNavigate: (page: 'login' | 'register' | 'main' | 'difficulty') => void;
@@ -13,17 +14,24 @@ const Data = ({ onNavigate }: MainScreenProps) => {
   });
 
   useEffect(() => {
-    const correct = parseInt(localStorage.getItem('et_guessed_true') || '0', 10);
-    const incorrect = parseInt(localStorage.getItem('et_guessed_false') || '0', 10);
-    const sessions = parseInt(localStorage.getItem('et_total_sessions') || '0', 10);
-    const streak = parseInt(localStorage.getItem('et_daily_streak') || '0', 10);
+    const fetchStats = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        await syncFirestoreStatsToLocal(user.uid);
+      }
+      const correct = parseInt(localStorage.getItem('et_guessed_true') || '0', 10);
+      const incorrect = parseInt(localStorage.getItem('et_guessed_false') || '0', 10);
+      const sessions = parseInt(localStorage.getItem('et_total_sessions') || '0', 10);
+      const streak = parseInt(localStorage.getItem('et_daily_streak') || '0', 10);
 
-    setStats({
-      correctGuesses: correct,
-      incorrectGuesses: incorrect,
-      totalSessions: sessions,
-      dailyStreak: streak,
-    });
+      setStats({
+        correctGuesses: correct,
+        incorrectGuesses: incorrect,
+        totalSessions: sessions,
+        dailyStreak: streak,
+      });
+    };
+    fetchStats();
   }, []);
 
   const totalGuesses = stats.correctGuesses + stats.incorrectGuesses;
