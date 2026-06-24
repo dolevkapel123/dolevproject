@@ -62,16 +62,20 @@ const Register = ({ onNavigate }: RegisterProps) => {
           await updateProfile(user, { displayName: username });
 
           // Save user profile details to Cloud Firestore
-          await setDoc(doc(db, "users", user.uid), {
-            uid: user.uid,
-            firstName,
-            lastName,
-            username,
-            email,
-            age: parseInt(age, 10) || 0,
-            createdAt: new Date().toISOString(),
-            stats: defaultStats
-          });
+          try {
+            await setDoc(doc(db, "users", user.uid), {
+              uid: user.uid,
+              firstName,
+              lastName,
+              username,
+              email,
+              age: parseInt(age, 10) || 0,
+              createdAt: new Date().toISOString(),
+              stats: defaultStats
+            });
+          } catch (firestoreErr) {
+            console.error("Failed to save user details to Cloud Firestore. Falling back to local storage.", firestoreErr);
+          }
 
           // Initialize local storage for new user
           localStorage.setItem('et_guessed_true', '0');

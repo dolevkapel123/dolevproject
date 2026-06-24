@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth, syncLocalStatsToFirestore } from './firebase';
+import { auth, getUserStats, updateUserStats } from './firebase';
 import Register from './Register';
 import Login from './Login';
 import MainScreen from './MainScreen';
@@ -14,23 +14,27 @@ function App() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('novice');
   const [expertSessionsCompleted, setExpertSessionsCompleted] = useState<number>(0);
 
-  // Load completed expert sessions count from localStorage
+  // Load completed expert sessions count from Firestore / fallback cache
   useEffect(() => {
-    const saved = localStorage.getItem('et_expert_sessions_completed');
-    if (saved) {
-      setExpertSessionsCompleted(parseInt(saved, 10) || 0);
-    }
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        const stats = await getUserStats(user.uid);
+        setExpertSessionsCompleted(stats.expertSessionsCompleted);
+      } else {
+        setExpertSessionsCompleted(0);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
-  const handleCompleteExpertSession = () => {
+  const handleCompleteExpertSession = async () => {
     const newVal = expertSessionsCompleted + 1;
     setExpertSessionsCompleted(newVal);
-    localStorage.setItem('et_expert_sessions_completed', newVal.toString());
     
-    // Sync to Firestore
+    // Update in Firestore (which also updates local storage)
     const user = auth.currentUser;
     if (user) {
-      syncLocalStatsToFirestore(user.uid);
+      await updateUserStats(user.uid, { expertSessionsCompleted: newVal });
     }
   };
 

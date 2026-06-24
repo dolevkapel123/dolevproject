@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth, syncFirestoreStatsToLocal } from './firebase';
+import { auth, getUserStats } from './firebase';
 
 interface MainScreenProps {
   onNavigate: (page: 'login' | 'register' | 'main' | 'difficulty') => void;
@@ -17,25 +17,27 @@ const Data = ({ onNavigate }: MainScreenProps) => {
     const fetchStats = async () => {
       const user = auth.currentUser;
       if (user) {
-        await syncFirestoreStatsToLocal(user.uid);
+        const firestoreStats = await getUserStats(user.uid);
+        const correct = firestoreStats.correctGuesses;
+        const incorrect = firestoreStats.incorrectGuesses;
+        const sessions = firestoreStats.totalSessions;
+        const streak = firestoreStats.dailyStreak;
+        
+        setStats({
+          correctGuesses: isNaN(correct) ? 0 : (correct ?? 0),
+          incorrectGuesses: isNaN(incorrect) ? 0 : (incorrect ?? 0),
+          totalSessions: isNaN(sessions) ? 0 : (sessions ?? 0),
+          dailyStreak: isNaN(streak) ? 0 : (streak ?? 0),
+        });
       }
-      const correct = parseInt(localStorage.getItem('et_guessed_true') || '0', 10);
-      const incorrect = parseInt(localStorage.getItem('et_guessed_false') || '0', 10);
-      const sessions = parseInt(localStorage.getItem('et_total_sessions') || '0', 10);
-      const streak = parseInt(localStorage.getItem('et_daily_streak') || '0', 10);
-
-      setStats({
-        correctGuesses: correct,
-        incorrectGuesses: incorrect,
-        totalSessions: sessions,
-        dailyStreak: streak,
-      });
     };
     fetchStats();
   }, []);
 
-  const totalGuesses = stats.correctGuesses + stats.incorrectGuesses;
-  const accuracy = totalGuesses > 0 ? Math.round((stats.correctGuesses / totalGuesses) * 100) : 0;
+  const correct = isNaN(stats.correctGuesses) ? 0 : (stats.correctGuesses ?? 0);
+  const incorrect = isNaN(stats.incorrectGuesses) ? 0 : (stats.incorrectGuesses ?? 0);
+  const totalGuesses = correct + incorrect;
+  const accuracy = totalGuesses > 0 ? Math.round((correct / totalGuesses) * 100) : 0;
 
   // SVG Gauge calculations (radius = 88, circumference = 2 * PI * 88 = 552.92)
   const strokeDasharray = 552.92;
@@ -56,12 +58,13 @@ const Data = ({ onNavigate }: MainScreenProps) => {
   }
 
   // Daily Streak Milestones
-  const nextMilestone = [3, 7, 14, 30, 60, 90, 365].find(m => m > stats.dailyStreak) || (stats.dailyStreak + 1);
-  const streakProgress = Math.min(Math.round((stats.dailyStreak / nextMilestone) * 100), 100);
+  const dailyStreak = isNaN(stats.dailyStreak) ? 0 : (stats.dailyStreak ?? 0);
+  const nextMilestone = [3, 7, 14, 30, 60, 90, 365].find(m => m > dailyStreak) || (dailyStreak + 1);
+  const streakProgress = Math.min(Math.round((dailyStreak / nextMilestone) * 100), 100);
 
   // Skill distribution percentages for the bars
-  const correctPct = totalGuesses > 0 ? (stats.correctGuesses / totalGuesses) * 100 : 0;
-  const incorrectPct = totalGuesses > 0 ? (stats.incorrectGuesses / totalGuesses) * 100 : 0;
+  const correctPct = totalGuesses > 0 ? (correct / totalGuesses) * 100 : 0;
+  const incorrectPct = totalGuesses > 0 ? (incorrect / totalGuesses) * 100 : 0;
 
   return (
     <div className="bg-background text-on-background font-body selection:bg-primary-container selection:text-on-primary-container min-h-screen pb-36">

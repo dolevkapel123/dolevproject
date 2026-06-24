@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth, syncLocalStatsToFirestore } from './firebase';
+import { auth, getUserStats, updateUserStats, incrementUserStats } from './firebase';
 
 interface PianoTrainerProps {
   onNavigate: (page: 'login' | 'register' | 'main' | 'difficulty' | 'piano') => void;
@@ -203,33 +203,35 @@ const PianoTrainer = ({ onNavigate, difficulty, onCompleteExpertSession }: Piano
   useEffect(() => {
     startNewRound();
 
-    // Increment total sessions
-    const sessions = parseInt(localStorage.getItem('et_total_sessions') || '0', 10);
-    localStorage.setItem('et_total_sessions', (sessions + 1).toString());
+    const updateSessionStats = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
 
-    // Calculate and update daily streak
-    const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
-    const lastSessionDate = localStorage.getItem('et_last_session_date');
-    const currentStreak = parseInt(localStorage.getItem('et_daily_streak') || '0', 10);
-
-    if (!lastSessionDate) {
-      localStorage.setItem('et_daily_streak', '1');
-      localStorage.setItem('et_last_session_date', today);
-    } else if (lastSessionDate !== today) {
-      const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
-      if (lastSessionDate === yesterday) {
-        localStorage.setItem('et_daily_streak', (currentStreak + 1).toString());
-      } else {
-        localStorage.setItem('et_daily_streak', '1');
+      const currentStats = await getUserStats(user.uid);
+      const newTotalSessions = currentStats.totalSessions + 1;
+      
+      const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+      let newStreak = currentStats.dailyStreak;
+      
+      if (!currentStats.lastSessionDate) {
+        newStreak = 1;
+      } else if (currentStats.lastSessionDate !== today) {
+        const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('en-CA');
+        if (currentStats.lastSessionDate === yesterday) {
+          newStreak = currentStats.dailyStreak + 1;
+        } else {
+          newStreak = 1;
+        }
       }
-      localStorage.setItem('et_last_session_date', today);
-    }
 
-    // Sync to Firestore
-    const user = auth.currentUser;
-    if (user) {
-      syncLocalStatsToFirestore(user.uid);
-    }
+      await updateUserStats(user.uid, {
+        totalSessions: newTotalSessions,
+        dailyStreak: newStreak,
+        lastSessionDate: today
+      });
+    };
+
+    updateSessionStats();
   }, []);
 
   const handlePlayTarget = () => {
@@ -239,7 +241,7 @@ const PianoTrainer = ({ onNavigate, difficulty, onCompleteExpertSession }: Piano
     }
   };
 
-  const handleKeyClick = (key: KeyInfo) => {
+  const handleKeyClick = async (key: KeyInfo) => {
     if (!targetNote || isSessionComplete) return;
 
     // Play clicked note in target note's octave for comparison
@@ -249,16 +251,12 @@ const PianoTrainer = ({ onNavigate, difficulty, onCompleteExpertSession }: Piano
 
     // Verify guess
     const isCorrect = key.name === targetNote.name;
+    const user = auth.currentUser;
 
     if (isCorrect) {
-      // Record correct guess
-      const currentTrue = parseInt(localStorage.getItem('et_guessed_true') || '0', 10);
-      localStorage.setItem('et_guessed_true', (currentTrue + 1).toString());
-
-      // Sync to Firestore
-      const user = auth.currentUser;
+      // Record correct guess directly in Firestore (asynchronously, does not block)
       if (user) {
-        syncLocalStatsToFirestore(user.uid);
+        incrementUserStats(user.uid, { correctGuesses: 1 });
       }
 
       setFeedback('Correct!');
@@ -280,14 +278,9 @@ const PianoTrainer = ({ onNavigate, difficulty, onCompleteExpertSession }: Piano
         }, 1200);
       }
     } else {
-      // Record incorrect guess
-      const currentFalse = parseInt(localStorage.getItem('et_guessed_false') || '0', 10);
-      localStorage.setItem('et_guessed_false', (currentFalse + 1).toString());
-
-      // Sync to Firestore
-      const user = auth.currentUser;
+      // Record incorrect guess directly in Firestore (asynchronously, does not block)
       if (user) {
-        syncLocalStatsToFirestore(user.uid);
+        incrementUserStats(user.uid, { incorrectGuesses: 1 });
       }
 
       setFeedback('Try again!');

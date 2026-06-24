@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider, db, syncFirestoreStatsToLocal } from './firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { auth, googleProvider, db, getUserStats, defaultStats } from './firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 interface LoginProps {
   onNavigate: (page: string) => void;
@@ -18,7 +18,7 @@ const Login = ({ onNavigate }: LoginProps) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('Logged in successfully');
-      await syncFirestoreStatsToLocal(userCredential.user.uid);
+      await getUserStats(userCredential.user.uid);
       onNavigate('main');
     } catch (err: any) {
       setError(err.message);
@@ -31,14 +31,28 @@ const Login = ({ onNavigate }: LoginProps) => {
       const user = result.user;
 
       // Save/merge Google user profile to Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        email: user.email || '',
-        username: user.displayName || '',
-        lastLogin: new Date().toISOString()
-      }, { merge: true });
+      try {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        const updateData: any = {
+          uid: user.uid,
+          email: user.email || '',
+          username: user.displayName || '',
+          lastLogin: new Date().toISOString()
+        };
 
-      await syncFirestoreStatsToLocal(user.uid);
+        // Initialize stats if this is a new user or stats are missing in database
+        if (!userDoc.exists() || !userDoc.data()?.stats) {
+          updateData.stats = defaultStats;
+        }
+
+        await setDoc(userDocRef, updateData, { merge: true });
+      } catch (firestoreErr) {
+        console.error("Failed to save/merge Google user details to Cloud Firestore. Falling back to local storage.", firestoreErr);
+      }
+
+      await getUserStats(user.uid);
       console.log('Google login successful');
       onNavigate('main');
     } catch (err: any) {
